@@ -4,6 +4,26 @@ export async function onRequestPost(context) {
     const { request, env } = context;
 
     try {
+        // 验证 Authorization Token
+        if (env.API_TOKEN) {
+            const authHeader = request.headers.get('Authorization');
+            const expectedToken = `Bearer ${env.API_TOKEN}`;
+            
+            if (!authHeader || authHeader !== expectedToken) {
+                return new Response(
+                    JSON.stringify({
+                        status: false,
+                        message: "Unauthorized: Invalid or missing API token",
+                        data: null
+                    }),
+                    {
+                        status: 401,
+                        headers: { 'Content-Type': 'application/json' }
+                    }
+                );
+            }
+        }
+
         const clonedRequest = request.clone();
         const formData = await clonedRequest.formData();
 
@@ -63,8 +83,33 @@ export async function onRequestPost(context) {
             });
         }
 
+        // 构建完整的 URL
+        const domain = env.API_DOMAIN || 'https://your-domain.pages.dev';
+        const fullUrl = `${domain}/file/${fileId}.${fileExtension}`;
+        
+        // 返回 Lsky-Pro 兼容格式
         return new Response(
-            JSON.stringify([{ 'src': `/file/${fileId}.${fileExtension}` }]),
+            JSON.stringify({
+                status: true,
+                message: "success",
+                data: {
+                    key: fileId,
+                    name: `${fileId}.${fileExtension}`,
+                    pathname: `/file/${fileId}.${fileExtension}`,
+                    origin_name: fileName,
+                    size: uploadFile.size,
+                    mimetype: uploadFile.type,
+                    extension: fileExtension,
+                    links: {
+                        url: fullUrl,
+                        html: `<img src="${fullUrl}" alt="${fileName}" />`,
+                        bbcode: `[img]${fullUrl}[/img]`,
+                        markdown: `![${fileName}](${fullUrl})`,
+                        markdown_with_link: `[![${fileName}](${fullUrl})](${fullUrl})`,
+                        thumbnail_url: fullUrl
+                    }
+                }
+            }),
             {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' }
@@ -73,7 +118,11 @@ export async function onRequestPost(context) {
     } catch (error) {
         console.error('Upload error:', error);
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({
+                status: false,
+                message: error.message,
+                data: null
+            }),
             {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }

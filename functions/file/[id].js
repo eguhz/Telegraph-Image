@@ -33,19 +33,46 @@ export async function onRequest(context) {
     // If the response is OK, proceed with further checks
     if (!response.ok) return response;
 
+    // Get the file extension to determine Content-Type
+    const fileExtension = params.id.split('.').pop().toLowerCase();
+    const contentTypeMap = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'bmp': 'image/bmp',
+        'ico': 'image/x-icon',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'ogg': 'audio/ogg',
+    };
+    const contentType = contentTypeMap[fileExtension] || 'application/octet-stream';
+
     // Log response details
     console.log(response.ok, response.status);
 
     // Allow the admin page to directly view the image
     const isAdmin = request.headers.get('Referer')?.includes(`${url.origin}/admin`);
     if (isAdmin) {
-        return response;
+        // Create new response with proper headers for inline display
+        const newResponse = new Response(response.body, response);
+        newResponse.headers.set('Content-Type', contentType);
+        newResponse.headers.set('Content-Disposition', 'inline');
+        return newResponse;
     }
 
     // Check if KV storage is available
     if (!env.img_url) {
         console.log("KV storage not available, returning image directly");
-        return response;  // Directly return image response, terminate execution
+        // Create new response with proper headers for inline display
+        const newResponse = new Response(response.body, response);
+        newResponse.headers.set('Content-Type', contentType);
+        newResponse.headers.set('Content-Disposition', 'inline');
+        return newResponse;  // Directly return image response, terminate execution
     }
 
     // The following code executes only if KV is available
@@ -77,7 +104,11 @@ export async function onRequest(context) {
 
     // Handle based on ListType and Label
     if (metadata.ListType === "White") {
-        return response;
+        // Create new response with proper headers for inline display
+        const newResponse = new Response(response.body, response);
+        newResponse.headers.set('Content-Type', contentType);
+        newResponse.headers.set('Content-Disposition', 'inline');
+        return newResponse;
     } else if (metadata.ListType === "Block" || metadata.Label === "adult") {
         const referer = request.headers.get('Referer');
         const redirectUrl = referer ? "https://static-res.pages.dev/teleimage/img-block-compressed.png" : `${url.origin}/block-img.html`;
@@ -123,8 +154,11 @@ export async function onRequest(context) {
     console.log("Saving metadata");
     await env.img_url.put(params.id, "", { metadata });
 
-    // Return file content
-    return response;
+    // Return file content with proper headers for inline display
+    const newResponse = new Response(response.body, response);
+    newResponse.headers.set('Content-Type', contentType);
+    newResponse.headers.set('Content-Disposition', 'inline');
+    return newResponse;
 }
 
 async function getFilePath(env, file_id) {

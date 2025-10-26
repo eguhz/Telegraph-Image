@@ -32,10 +32,25 @@
    ![202409071751619](https://github.com/user-attachments/assets/59fe8b20-c969-4d13-8d46-e58c0e8b9e79)
 
 最后去Cloudflare Pages后台设置相关的环境变量（注：修改环境变量后，需要重新部署才能生效）
+
+### 必需的环境变量
+
 | 环境变量        | 示例值                    | 说明                                                                                   |
 |-----------------|---------------------------|----------------------------------------------------------------------------------------|
 | `TG_Bot_Token`   | `123468:AAxxxGKrn5`        | 从[@BotFather](https://t.me/BotFather)获取的Telegram Bot Token。                        |
 | `TG_Chat_ID`     | `-1234567`                 | 频道的ID，确保TG Bot是该频道或群组的管理员。 |
+| `API_DOMAIN`     | `https://your-domain.pages.dev` | **必需**：你的域名，用于构建完整的图片URL。可以是 Cloudflare Pages 提供的域名或自定义域名。 |
+
+### 可选的环境变量
+
+| 环境变量        | 示例值                    | 说明                                                                                   |
+|-----------------|---------------------------|----------------------------------------------------------------------------------------|
+| `API_TOKEN`      | `your-secret-token-here`  | API访问令牌。设置后，上传图片时必须在请求头中包含 `Authorization: Bearer <token>`。 |
+| `ModerateContentApiKey` | `your-api-key`     | 图片审查API密钥，从 https://moderatecontent.com/ 获取。                                  |
+| `BASIC_USER`     | `admin`                   | 后台管理页面登录用户名。                                                                |
+| `BASIC_PASS`     | `password`                | 后台管理页面登录密码。                                                                  |
+| `WhiteList_Mode` | `true`                    | 是否启用白名单模式。                                                                    |
+| `disable_telemetry` | `true`                 | 是否禁用遥测。                                                                          |
 
 ## 如何部署
 
@@ -97,7 +112,74 @@
 
 Hostloc @feixiang 和@乌拉擦 提供的思路和代码
 
+## API 使用说明
+
+本项目现已支持 Lsky-Pro 兼容的 API 格式，方便与各种图床工具集成使用。
+
+### 上传图片
+
+**请求示例：**
+
+```bash
+curl -X POST https://your-domain.pages.dev/upload \
+  -H "Authorization: Bearer your-secret-token-here" \
+  -F "file=@/path/to/image.jpg"
+```
+
+**成功响应：**
+
+```json
+{
+  "status": true,
+  "message": "success",
+  "data": {
+    "key": "file-id",
+    "name": "file-id.jpg",
+    "pathname": "/file/file-id.jpg",
+    "origin_name": "image.jpg",
+    "size": 123456,
+    "mimetype": "image/jpeg",
+    "extension": "jpg",
+    "links": {
+      "url": "https://your-domain.pages.dev/file/file-id.jpg",
+      "html": "<img src=\"...\" alt=\"...\" />",
+      "bbcode": "[img]...[/img]",
+      "markdown": "![...](url)",
+      "markdown_with_link": "[![...](url)](url)",
+      "thumbnail_url": "https://your-domain.pages.dev/file/file-id.jpg"
+    }
+  }
+}
+```
+
+**错误响应：**
+
+```json
+{
+  "status": false,
+  "message": "错误信息",
+  "data": null
+}
+```
+
+### 访问图片
+
+直接访问返回的 URL 即可在浏览器中查看图片（不会自动下载）：
+
+```
+https://your-domain.pages.dev/file/file-id.jpg
+```
+
+
 ## 更新日志
+
+2025 年 10 月 26 日--API 增强更新
+
+- **修复图片访问自动下载问题**：现在访问图片链接会直接在浏览器中显示，而不是下载
+- **Lsky-Pro 兼容 API**：上传接口返回值现已兼容 Lsky-Pro 格式，包含完整 URL 和多种链接格式（HTML、BBCode、Markdown 等）
+- **API Token 认证**：支持通过 `Authorization: Bearer <token>` 头进行 API 访问控制
+- **完整 URL 返回**：新增 `API_DOMAIN` 环境变量，返回完整的图片访问链接
+
 2024 年 7 月 6 日--后台管理页面更新
 
 - 支持两个新的管理页面视图（网格视图和瀑布流）
