@@ -1,6 +1,41 @@
 import sentryPlugin from "@cloudflare/pages-plugin-sentry";
 import '@sentry/tracing';
 
+/**
+ * CORS 中间件 - 处理跨域请求
+ */
+export async function corsHeaders(context) {
+  const { request } = context;
+  
+  // 处理 OPTIONS 预检请求
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Accept-Language, Origin, User-Agent',
+        'Access-Control-Max-Age': '86400',
+      }
+    });
+  }
+  
+  // 继续处理请求
+  const response = await context.next();
+  
+  // 为响应添加 CORS 头
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('Access-Control-Allow-Origin', '*');
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Accept-Language, Origin, User-Agent');
+  
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders
+  });
+}
+
 export async function errorHandling(context) {
   const env = context.env;
   if (typeof env.disable_telemetry == "undefined" || env.disable_telemetry == null || env.disable_telemetry == "") {

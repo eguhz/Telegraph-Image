@@ -1,3 +1,3 @@
-import { errorHandling, telemetryData } from '../utils/middleware.js';
+import { corsHeaders, errorHandling, telemetryData } from '../utils/middleware.js';
 
-export const onRequest = [errorHandling, telemetryData];
+export const onRequest = [corsHeaders, errorHandling, telemetryData];
