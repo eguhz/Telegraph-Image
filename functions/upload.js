@@ -1,5 +1,5 @@
-import { errorHandling, telemetryData } from "./utils/middleware";
-import { parseMultipartFormData } from "./utils/multipart-parser";
+import { errorHandling, telemetryData } from "./utils/middleware.js";
+import { parseMultipartFormData } from "./utils/multipart-parser.js";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
