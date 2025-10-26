@@ -1,4 +1,5 @@
 import { errorHandling, telemetryData } from "./utils/middleware";
+import { parseMultipartFormData } from "./utils/multipart-parser";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
@@ -25,7 +26,16 @@ export async function onRequestPost(context) {
         }
 
         const clonedRequest = request.clone();
-        const formData = await clonedRequest.formData();
+        
+        // 尝试解析 FormData，支持标准格式和原始 multipart 格式
+        let formData;
+        try {
+            formData = await clonedRequest.formData();
+        } catch (error) {
+            // 如果标准解析失败，尝试手动解析原始 multipart 数据
+            console.log('Standard formData parsing failed, trying manual parsing...');
+            formData = await parseMultipartFormData(request.clone());
+        }
 
         await errorHandling(context);
         telemetryData(context);
